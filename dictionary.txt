@@ -1,0 +1,25 @@
+| BLANK
+a | ARTICLE
+act | VERB
+as | PREPOSITION
+at | PREPOSITION
+ate | VERB
+bad | ADJECTIVE
+blue | ADJECTIVE
+care | VERB
+cops | NOUN
+deed | NOUN
+dine | VERB
+dog | NOUN
+dress | VERB
+eat | VERB
+face | NOUN
+for | PREPOSITION
+from | PREPOSITION
+good | ADJECTIVE
+grew | VERB
+in | PREPOSITION
+knocked | VERB
+look | VERB
+looked | VERB
+man | NOUN
