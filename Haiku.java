@@ -13,7 +13,7 @@ import javax.swing.*;
  * part of speech and syllabic order.
  * 
  * @author Jobin
- * @version 0.2.3
+ * @version 0.2.4
  */
 public class Haiku extends JFrame implements ActionListener {
 	
@@ -94,8 +94,6 @@ public class Haiku extends JFrame implements ActionListener {
 		//Pick a word (in this call) to add. If the dictionary runs out, or if 0 syllables are specified,
 		// this will return null.
 		String word = getNextWord(graph.getNode(startIndex), syllablesLeft);
-		System.out.println("Current POS: " + graph.getNode(startIndex)
-			+ "\n Current recursion call word: " + word);
 		
 		// if (word == null), no words can be found that meet the criteria.
 		if(word != null) {
@@ -141,7 +139,7 @@ public class Haiku extends JFrame implements ActionListener {
 	private String getNextWord(PartOfSpeech pos, int sylMax) {
 		//TODO: make this more efficient than brute-force
 		//TODO: this method currently ONLY retrieves the first word matching criteria, NOT a randomized one		
-		System.out.println(" Searching for a " + pos + " with <" + sylMax + " syllables");
+		System.out.println(" Searching for a " + pos + " with <" + sylMax + " syllables...");
 		
 		if (pos == PartOfSpeech.BLANK)
 			return "";
@@ -149,12 +147,12 @@ public class Haiku extends JFrame implements ActionListener {
 		// Create a set of all words that meet desired criteria
 		Set<String> words = new HashSet<String>();
 		for(String current : dictionary.keySet()) {
-			System.out.print("\n  - Current word: " + current);
+			System.out.print("\n  - " + current);
 			if( 
 			current.length() > 0 && 
 			pos == dictionary.get(current) && 
 			syllables(current) <= sylMax) {
-				System.out.print(" ...Adding word");
+				System.out.print(" <- possible choice");
 				words.add(current);
 				
 			}
@@ -164,8 +162,10 @@ public class Haiku extends JFrame implements ActionListener {
 		int target = new Random().nextInt(words.size());
 		int i = 0;
 		for(String s : words) {
-			if (i == target) 
+			if (i == target) {
+				System.out.println("\n Word chosen: " + s);
 				return s;
+			}
 		 	i++;
 		}
 		return null;
