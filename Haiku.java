@@ -13,7 +13,7 @@ import javax.swing.*;
  * part of speech and syllabic order.
  * 
  * @author Jobin
- * @version 0.2.4
+ * @version 0.2.5
  */
 public class Haiku extends JFrame implements ActionListener {
 	
@@ -195,26 +195,23 @@ public class Haiku extends JFrame implements ActionListener {
 					//prune everything in line before delimiter (inclusive)
 					String posString = inLine.substring(inLine.indexOf('|') + 1);
 					
-					PartOfSpeech pos = null;
-					if(posString.contains("NOUN"))
-						pos = PartOfSpeech.NOUN;
-					if(posString.contains("VERB"))
-						pos = PartOfSpeech.VERB;
-					if(posString.contains("ADJECTIVE"))
-						pos = PartOfSpeech.ADJECTIVE;
-					if(posString.contains("ADVERB"))
-						pos = PartOfSpeech.ADVERB;
-					if(posString.contains("PREPOSITION"))
-						pos = PartOfSpeech.PREPOSITION;
-					if(posString.contains("ARTICLE"))
-						pos = PartOfSpeech.ARTICLE;
-					if(posString.contains("BLANK"))
-						pos = PartOfSpeech.BLANK;
-					
 					//prune everything in line after delimiter
 					String word = inLine.substring(0, inLine.indexOf('|'));
 					
-					dictionary.put(word, pos);
+					if(posString.contains(" NOUN"))
+						dictionary.put(word, PartOfSpeech.NOUN);
+					if(posString.contains(" VERB"))
+						dictionary.put(word, PartOfSpeech.VERB);
+					if(posString.contains(" ADJECTIVE"))
+						dictionary.put(word, PartOfSpeech.ADJECTIVE);
+					if(posString.contains(" ADVERB"))
+						dictionary.put(word, PartOfSpeech.ADVERB);
+					if(posString.contains(" PREPOSITION"))
+						dictionary.put(word, PartOfSpeech.PREPOSITION);
+					if(posString.contains(" ARTICLE"))
+						dictionary.put(word, PartOfSpeech.ARTICLE);
+					//if(posString.contains(" BLANK"))
+						//dictionary.put(word, PartOfSpeech.BLANK);
 				}
 			}
 			
