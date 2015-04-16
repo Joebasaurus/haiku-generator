@@ -13,7 +13,7 @@ import javax.swing.*;
  * part of speech and syllabic order.
  * 
  * @author Jobin
- * @version 0.1.2
+ * @version 0.2.0
  */
 public class Haiku extends JFrame implements ActionListener {
 	
@@ -137,9 +137,20 @@ public class Haiku extends JFrame implements ActionListener {
 		//TODO: make this more efficient than brute-force
 		//TODO: this method currently ONLY retrieves the first word matching criteria, NOT a randomized one
 		
-		for(Entry<String, PartOfSpeech> current: dictionary.entrySet()) {
-			if(pos == current.getValue() && sylCount >= syllables(current.getKey()))
-				return current.getKey();
+		// Create a set of all words that meet desired criteria
+		Set<String> words = new Set<String>();
+		for(String current : dictionary.keySet()) {
+			if(pos == map.get(current) && sylCount >= syllables(current))
+				words.add(current);
+		}
+		
+		// Choose one word from this set at random
+		int target = new Random().nextInt(words.size());
+		int i = 0;
+		for(String s : words) {
+			if (i == target) 
+				return s;
+		 	i++;
 		}
 		return null;
 	}
