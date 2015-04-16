@@ -137,9 +137,6 @@ public class Haiku extends JFrame implements ActionListener {
 		//TODO: make this more efficient than brute-force
 		//TODO: this method currently ONLY retrieves the first word matching criteria, NOT a randomized one
 		
-		Random random = new Random();
-		HashMap<Integer, String> temp = new HashMap<Integer, String>();
-		
 		for(Entry<String, PartOfSpeech> current: dictionary.entrySet()) {
 			if(pos == current.getValue() && sylCount >= syllables(current.getKey()))
 				return current.getKey();
@@ -200,7 +197,8 @@ public class Haiku extends JFrame implements ActionListener {
 			exception.printStackTrace();
 			JOptionPane.showMessageDialog(
 				this, 
-				"Error encountered while loading file \"" + DICTIONARY_FILE_PATH + "\": file not found",
+				"Error encountered while loading file \"" + DICTIONARY_FILE_PATH 
+					+ "\": file not found",
 				"Error loading file", 
 				JOptionPane.ERROR_MESSAGE);
 			System.exit(1);
