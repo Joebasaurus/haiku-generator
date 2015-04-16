@@ -13,31 +13,37 @@ import javax.swing.*;
  * part of speech and syllabic order.
  * 
  * @author Jobin
- * @version 0.0.5
+ * @version 0.0.7
  */
 public class Haiku extends JFrame implements ActionListener {
 	
-	//stores the location of an external dictionary file
-	private static final String DICTIONARY_FILE_PATH = "dictionary.txt";
+     // =========================== INTERNAL COMPONENTS =========================== \\
+     
+		//stores the location of an external dictionary file
+		private static final String DICTIONARY_FILE_PATH = "dictionary.txt";
+		//stores desired sentence structure
+		private static final SentenceGraph graph = new SentenceGraph();
 	
-	public enum PartOfSpeech { NOUN, VERB, ADVERB, ADJECTIVE, PREPOSITION, ARTICLE, BLANK };
+		public enum PartOfSpeech { NOUN, VERB, ADVERB, ADJECTIVE, PREPOSITION, ARTICLE, BLANK };
 	
-	//stores information about loaded words
-	private HashMap<String, PartOfSpeech> dictionary;
+		//stores information about loaded words
+		private HashMap<String, PartOfSpeech> dictionary;
 	
-	//stores desired sentence structure
-	private static final SentenceGraph graph = new SentenceGraph();
-	
-	//GUI components
-	private JButton generateButton;
-	private JTextArea output;
 
+		// GUI components
+		private JButton generateButton;
+		private JTextArea output;
+
+	
+	
+     // =========================== CONSTRUCTOR AND MAIN =========================== \\
 	
 	public Haiku() {
 		setupDictionary();
 		setupWindow();
 		System.out.println("   SETUP COMPLETE");
 	}
+	
 	
 	public static void main(String[] args) {
 		//create an instance of 'Haiku' to invoke the setup functions
@@ -48,33 +54,25 @@ public class Haiku extends JFrame implements ActionListener {
 	}
 	
 	
+     // ============================ PRIMARY METHODS ================================ \\
+     
 	/**
 	 * The backbone of the program.
 	 * @return a complete haiku.
 	 */
 	private String generate() {
-		System.out.print("   Generating a haiku...");
+		System.out.print("   Generating a haiku...");		
 		graph.reset();
-		String outString = "";
-		String temp = "";
-		do {
-			temp = buildSentence(5, graph.getIndex()) + "\n";
-		} while (temp == null);
-		outString += temp;
 		
-		do {
-			temp = buildSentence(7, graph.getIndex()) + "\n";
-		} while (temp == null);
-		outString += temp;
-		
-		do {
-			temp = buildSentence(5, graph.getIndex()) + "\n";
-		} while (temp == null);
-		outString += temp;
+		String outString = "";		
+		outString += buildSentence(5, graph.getIndex()) + "\n";
+		outString += buildSentence(7, graph.getIndex()) + "\n";
+		outString += buildSentence(5, graph.getIndex()) + "\n";
 		
 		System.out.println("done");
 		return outString;
 	}
+	
 	
 	/**
 	 * This method recursively traverses the supporting sentence structure graph.
@@ -83,40 +81,49 @@ public class Haiku extends JFrame implements ActionListener {
 	 * @return a string containing the current haiku line
 	 */
 	private String buildSentence(int syllableCount, int startIndex) {
-		//if the current line contains exactly (target) syllables, return a base case
+		
+		//BASE CASE: the current line contains exactly (target) syllables
 		if (syllableCount <= 0)
 			return "";
-		//if end of sentence is reached, return a base case
+		
+		//BASE CASE: end of sentence is reached
 		if (startIndex >= graph.size() - 1 && syllableCount > 0)
 			return null;
+		
 		
 		//Pick a word (in this call) to add. If the dictionary runs out, or if 0 syllables are specified,
 		// this will return null.
 		String word = getNextWord(graph.getNode(startIndex), syllableCount);
 		System.out.println("Current POS: " + graph.getNode(startIndex)
-				+ "\n Current recursion call word: " + word);
+			+ "\n Current recursion call word: " + word);
 		
+		// if (word == null), no words can be found that meet the criteria.
 		if(word != null) {
+			
+			// Iterate through the edges accessible from this position
 			for(int i = graph.nextEdge(startIndex); graph.hasNextEdge(i); i = graph.nextEdge(i)) {
-				System.out.println("attempting travel to edge: " + i);
 				
-				//make a recursive call on the next available edge
+				//attempt travel to the next available edge
+				System.out.println("attempting travel to edge: " + i);
 				String temp = buildSentence(syllableCount - syllables(word), i);
 				
-				//if traversal can be completed by following this edge, commit the result to return statement
+				// if sentence can be completed by following this edge, commit the result.
+				// if (temp == null), a dead end was reached in subsequent recursion.
 				if (temp != null)
 					return word + temp;
 			}
 		}
+		// if this point is reached, the method either has no more available edges or no words.
+		//          either way, the method needs to backtrack.
 		return null;
 	}
 	
 	
 	/**
 	 * Find the number of syllables in a given string.
+	 * This method doesn't yet work, so dictionary words with > 1 syllables should be avoided for now.
 	 */
 	private static int syllables(String word) {
-		//TODO: auto-generated method stub
 		return 1;
 	}
 	
@@ -128,7 +135,7 @@ public class Haiku extends JFrame implements ActionListener {
 	 */
 	private String getNextWord(PartOfSpeech pos, int sylCount) {
 		//TODO: make this more efficient than brute-force
-		//TODO: this method ONLY retrieves the first word matching criteria, NOT a randomized one
+		//TODO: this method currently ONLY retrieves the first word matching criteria, NOT a randomized one
 		
 		Random random = new Random();
 		HashMap<Integer, String> temp = new HashMap<Integer, String>();
@@ -140,6 +147,9 @@ public class Haiku extends JFrame implements ActionListener {
 		return null;
 	}
 	
+	
+	
+	// =================== SETUP METHODS ========================= \\
 	
 	/**
 	 * Initialize the supporting data structure for a Haiku generator.
@@ -154,7 +164,7 @@ public class Haiku extends JFrame implements ActionListener {
 			
 			while(inFile.hasNextLine()) { //Load entries
 				
-				String inLine = inFile.nextLine();  //stores each new line for parsing				
+				String inLine = inFile.nextLine();  //stores each new line for parsing
 				
 				if (inLine.matches(".*|.*")) {	 //enforce preset format (WORD | POS)
 					
@@ -188,9 +198,11 @@ public class Haiku extends JFrame implements ActionListener {
 			System.out.println("done");
 		} catch (IOException exception) {
 			exception.printStackTrace();
-			JOptionPane.showMessageDialog(this, "Error encountered while loading file \"" 
-												+ DICTIONARY_FILE_PATH + "\": file not found", 
-												"Error loading file", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(
+				this, 
+				"Error encountered while loading file \"" + DICTIONARY_FILE_PATH + "\": file not found",
+				"Error loading file", 
+				JOptionPane.ERROR_MESSAGE);
 			System.exit(1);
 		}
 	}
@@ -222,6 +234,7 @@ public class Haiku extends JFrame implements ActionListener {
 		
 		System.out.println("done");
 	}
+	
 	
 	/**
 	 * Catch an ActionEvent -- used for identification of button clicks
