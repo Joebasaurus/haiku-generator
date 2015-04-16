@@ -13,7 +13,7 @@ import javax.swing.*;
  * part of speech and syllabic order.
  * 
  * @author Jobin
- * @version 0.0.7
+ * @version 0.1.1
  */
 public class Haiku extends JFrame implements ActionListener {
 	
@@ -50,7 +50,7 @@ public class Haiku extends JFrame implements ActionListener {
 		Haiku program = new Haiku();
 		program.output.setText("    Clicking down below \n"
 				+ "   will generate a haiku \n"
-				+ "   something blah blah blah.");		
+				+ "   try it if you dare.");		
 	}
 	
 	
