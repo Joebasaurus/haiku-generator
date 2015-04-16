@@ -13,7 +13,7 @@ import javax.swing.*;
  * part of speech and syllabic order.
  * 
  * @author Jobin
- * @version 0.2.0
+ * @version 0.2.2
  */
 public class Haiku extends JFrame implements ActionListener {
 	
@@ -133,15 +133,26 @@ public class Haiku extends JFrame implements ActionListener {
 	 * @param pos the desired part of speech
 	 * @param sylCount the MAXIMUM number of syllables that the word can have
 	 */
-	private String getNextWord(PartOfSpeech pos, int sylCount) {
+	private String getNextWord(PartOfSpeech pos, int sylMax) {
 		//TODO: make this more efficient than brute-force
-		//TODO: this method currently ONLY retrieves the first word matching criteria, NOT a randomized one
+		//TODO: this method currently ONLY retrieves the first word matching criteria, NOT a randomized one		
+		System.out.println(" Searching for a " + pos + " with <" + sylMax + " syllables");
+		
+		if (pos == PartOfSpeech.BLANK)
+			return "";
 		
 		// Create a set of all words that meet desired criteria
-		Set<String> words = new Set<String>();
+		Set<String> words = new HashSet<String>();
 		for(String current : dictionary.keySet()) {
-			if(pos == map.get(current) && sylCount >= syllables(current))
+			System.out.print("\n  - Current word: " + current);
+			if( 
+			current.length() > 0 && 
+			pos == dictionary.get(current) && 
+			syllables(current) <= sylMax) {
+				System.out.print(" ...Adding word");
 				words.add(current);
+				
+			}
 		}
 		
 		// Choose one word from this set at random
@@ -232,6 +243,8 @@ public class Haiku extends JFrame implements ActionListener {
 		//setup output field 
 		output = new JTextArea();
 		output.setEditable(false);
+		output.setLineWrap(true);
+		//output.setWrapStyleWord(true);
 		this.getContentPane().add(output, BorderLayout.CENTER);
 		
 		//window setup -- general
