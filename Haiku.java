@@ -13,7 +13,7 @@ import javax.swing.*;
  * part of speech and syllabic order.
  * 
  * @author Jobin
- * @version 0.2.6
+ * @version 0.2.8
  */
 public class Haiku extends JFrame implements ActionListener {
 	
@@ -50,7 +50,7 @@ public class Haiku extends JFrame implements ActionListener {
 		Haiku program = new Haiku();
 		program.output.setText("    Clicking down below \n"
 				+ "   will generate a haiku \n"
-				+ "   try it if you dare.");		
+				+ "   why don't you try it?");		
 	}
 	
 	
@@ -68,7 +68,6 @@ public class Haiku extends JFrame implements ActionListener {
 		outString += buildSentence(5, graph.getIndex()) + "\n";
 		outString += buildSentence(7, graph.getIndex()) + "\n";
 		outString += buildSentence(5, graph.getIndex()) + "\n";
-		
 		System.out.println("done");
 		return outString;
 	}
@@ -87,7 +86,7 @@ public class Haiku extends JFrame implements ActionListener {
 			return "";
 		
 		//BASE CASE: end of sentence is reached
-		if (startIndex >= graph.size() - 1 && syllablesLeft > 0)
+		if (startIndex >= graph.last() - 1 && syllablesLeft <= 0)
 			return "";
 		
 		
@@ -100,7 +99,17 @@ public class Haiku extends JFrame implements ActionListener {
 		if(word != null) {
 			
 			// Iterate through the edges accessible from this position
-			for(int i = graph.nextEdge(startIndex); graph.hasNextEdge(i); i = graph.nextEdge(i)) {
+			int i = graph.nextEdge(startIndex);
+			
+			//this stops the sentence from ending on a preposition or article
+			if( 	(graph.reachedEnd() || syllablesLeft - syllables(word) <1) && 
+				(nextPos == PartOfSpeech.ARTICLE || nextPos == PartOfSpeech.PREPOSITION)
+			     	) {
+				System.out.println(" Error: cannot end on a preposition or article. (BACKTRACKING)");
+				return null;
+			}
+			
+			while (graph.hasNextEdge(i) && i < graph.last()) {
 				
 				//attempt travel to the next available edge
 				System.out.println("attempting travel to edge: " + i + "    (pos: " + graph.getNode(i) + ")");
@@ -110,10 +119,12 @@ public class Haiku extends JFrame implements ActionListener {
 				// if (temp == null), method is backtracking (a dead end was reached in subsequent recursion).
 				if (temp != null)
 					return word + temp;
+				
+				i = graph.nextEdge(i);
 			}
 		}
 		// if this point is reached, the method either has no more available edges or no words.
-		//          either way, the method needs to backtrack.
+		System.out.println("\n           DEAD END -- BACKTRACKING\n");
 		return null;
 	}
 	
@@ -148,12 +159,12 @@ public class Haiku extends JFrame implements ActionListener {
 		// Create a set of all words that meet desired criteria
 		Set<String> words = new HashSet<String>();
 		for(String current : dictionary.keySet()) {
-			System.out.print("\n  - " + current);
+			//System.out.print("\n  - " + current);
 			if( 
 			current.length() > 0 && 
 			pos == dictionary.get(current) && 
 			syllables(current) <= sylMax) {
-				System.out.print(" <- possible choice");
+				//System.out.print(" <- possible choice");
 				words.add(current);
 				
 			}
