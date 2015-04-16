@@ -13,7 +13,7 @@ import javax.swing.*;
  * part of speech and syllabic order.
  * 
  * @author Jobin
- * @version 0.2.2
+ * @version 0.2.3
  */
 public class Haiku extends JFrame implements ActionListener {
 	
@@ -124,6 +124,11 @@ public class Haiku extends JFrame implements ActionListener {
 	 * This method doesn't yet work, so dictionary words with > 1 syllables should be avoided for now.
 	 */
 	private static int syllables(String word) {
+		if (word == null) 
+			return 0;
+		if (word.length() == 0) 
+			return 0;
+		
 		return 1;
 	}
 	
