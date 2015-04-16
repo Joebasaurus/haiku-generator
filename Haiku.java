@@ -13,7 +13,7 @@ import javax.swing.*;
  * part of speech and syllabic order.
  * 
  * @author Jobin
- * @version 0.2.5
+ * @version 0.2.6
  */
 public class Haiku extends JFrame implements ActionListener {
 	
@@ -88,12 +88,13 @@ public class Haiku extends JFrame implements ActionListener {
 		
 		//BASE CASE: end of sentence is reached
 		if (startIndex >= graph.size() - 1 && syllablesLeft > 0)
-			return null;
+			return "";
 		
 		
 		//Pick a word (in this call) to add. If the dictionary runs out, or if 0 syllables are specified,
 		// this will return null.
-		String word = getNextWord(graph.getNode(startIndex), syllablesLeft);
+		PartOfSpeech nextPos = graph.getNode(startIndex);
+		String word = getNextWord(nextPos, syllablesLeft);
 		
 		// if (word == null), no words can be found that meet the criteria.
 		if(word != null) {
@@ -102,11 +103,11 @@ public class Haiku extends JFrame implements ActionListener {
 			for(int i = graph.nextEdge(startIndex); graph.hasNextEdge(i); i = graph.nextEdge(i)) {
 				
 				//attempt travel to the next available edge
-				System.out.println("attempting travel to edge: " + i);
+				System.out.println("attempting travel to edge: " + i + "    (pos: " + graph.getNode(i) + ")");
 				String temp = buildSentence(syllablesLeft - syllables(word), i);
 				
 				// if sentence can be completed by following this edge, commit the result.
-				// if (temp == null), a dead end was reached in subsequent recursion.
+				// if (temp == null), method is backtracking (a dead end was reached in subsequent recursion).
 				if (temp != null)
 					return word + temp;
 			}
