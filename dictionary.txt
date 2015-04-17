@@ -1,5 +1,6 @@
 | BLANK
 a | ARTICLE
+the | ARTICLE
 act | VERB
 as | PREPOSITION
 at | PREPOSITION
@@ -7,7 +8,7 @@ ate | VERB
 bad | ADJECTIVE
 blue | ADJECTIVE
 care | VERB
-cops | NOUN
+cop | NOUN
 deed | NOUN
 dine | VERB
 dog | NOUN
@@ -17,9 +18,10 @@ face | NOUN
 for | PREPOSITION
 from | PREPOSITION
 good | ADJECTIVE
-grew | VERB
+grows | VERB
 in | PREPOSITION
-knocked | VERB
-look | VERB
-looked | VERB
+knocks | VERB
+looks | VERB
 man | NOUN
+fast | ADVERB ADJECTIVE
+slow | ADVERB ADJECTIVE
