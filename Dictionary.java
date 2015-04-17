@@ -129,18 +129,11 @@ public class Dictionary {
 	
 	//Counts the syllables in a word (handles upper/lowercase)
 	public static int syllableCount(String word) {
-		System.out.println(" Analyzing syllables in word: " + word);
+		word = word.trim();
 		
-		word = removeSilentVowels(word);
-		System.out.println(" Removing silent vowels: " + word);
-		
-		int count = 0;
-		for(int i = 0; i < word.length(); i++)
-			if(isVowel(word.charAt(i)))
-				count++;
-		
-		System.out.println(" Vowels counted: " + count + "     Diphthongs detected: " + diphthongCount(word));
-		return count - diphthongCount(word);
+		System.out.println(" Analyzing syllables in \"" + word + "\": " + (vowelCount(word) - (diphthongCount(word) + silentVowels(word)))
+				+ "  [V:" + vowelCount(word) + "  D:" + diphthongCount(word) + "  S:" + silentVowels(word) + "]");
+		return vowelCount(word) - (diphthongCount(word) + silentVowels(word));
 	}
 	
 	//handles upper/lowercase
@@ -168,18 +161,33 @@ public class Dictionary {
 		word = word.toUpperCase();
 		int count = 0;
 		
+		if(word.matches(".*A[EIUY].*")) count++;
+		if(word.matches(".*E[AEIUY].*")) count++;
+		if(word.matches(".*I[AEOU].*")) count++;
+		if(word.matches(".*O[AIOUY].*")) count++;
+		if(word.matches(".*U[AEIUY].*")) count++;
+		if(word.matches(".*[A-Z&&[^AEIOU]]Y[AEIOU].*")) count++;
+		
+		return count;
+	}
+	
+	public static int vowelCount(String word) {
+		int count = 0;
+		for(int i = 0; i < word.length(); i++)
+			if(isVowel(word.charAt(i)))
+				count++;
 		return count;
 	}
 	
 	//removes silent vowels from a word (handles upper/lowercase)
-	private static String removeSilentVowels(String word) {
+	public static int silentVowels(String word) {
+		word = word.toUpperCase();
 		if(word.length() > 1) {
-			if(word.startsWith("y") || word.startsWith("Y"))
-				word = word.substring(1);
-			if(word.endsWith("e") || word.endsWith("E"))
-				word = word.substring(0, word.length() - 1);
+			if(word.endsWith("E") && vowelCount(word) > 1)
+				if (!isVowel(word.charAt(word.length() - 2)))
+					return 1;
 		}
-		return word;
+		return 0;
 	}
 
 	
@@ -222,10 +230,5 @@ public class Dictionary {
 
 		dictionary.put(s, pos);
 		return true;
-	}
-
-	public boolean remove(String s) {
-		// TODO Auto-generated method stub
-		return false;
 	}
 }
