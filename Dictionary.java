@@ -1,6 +1,7 @@
 package haiku;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -22,10 +23,11 @@ public class Dictionary {
 	 * Default constructor for class Dictionary. Loads the default dictionary into memory.
 	 * @throws IOException default dictionary.txt file not found
 	 */
-	public Dictionary() throws IOException {
+	public Dictionary() throws FileNotFoundException {
 		dictionary = new java.util.HashMap<String, PartOfSpeech>();
 		System.out.print("   Loading dictionary file...");
-		load(DEFAULT_FILENAME);
+		if(!load(DEFAULT_FILENAME))
+			throw new FileNotFoundException("Error loading file \"" + DEFAULT_FILENAME + "\": file not found");
 		System.out.println("done");
 	}
 	
@@ -34,43 +36,65 @@ public class Dictionary {
 	 * @param filename the dictionary text file to initially load
 	 * @throws IOException specified dictionary txt file not found
 	 */
-	public Dictionary(String filename) throws IOException {
+	public Dictionary(String filename) throws FileNotFoundException {
 		dictionary = new java.util.HashMap<String, PartOfSpeech>();
 		System.out.print("   Loading dictionary file...");
-		load(filename);
+		if (!load(filename))
+			throw new FileNotFoundException("Error loading file \"" + filename + "\": file not found");
 		System.out.println("done");
 	}
 	
 	//Read the given dictionary text file, and add its contents to this class' internal dictionary.
-	public void load(String filename) throws IOException {
-		Scanner inFile = new Scanner(new File(filename));		
-
-		while(inFile.hasNextLine()) { //Load entries		
-			String inLine = inFile.nextLine();  //stores each new line for parsing
-			
-			if (inLine.matches(".*|.*")) {	 //enforce preset format (WORD | POS)				
-				//prune everything in line before delimiter (inclusive)
-				String posString = inLine.substring(inLine.indexOf('|') + 1);				
-				//prune everything in line after delimiter
-				String word = inLine.substring(0, inLine.indexOf('|'));
+	public boolean load(String filename) {
+		try {
+			Scanner inFile = new Scanner(new File(filename));		
+	
+			while(inFile.hasNextLine()) { //Load entries		
+				String inLine = inFile.nextLine();  //stores each new line for parsing
 				
-				if(posString.contains(" NOUN"))
-					dictionary.put(word, PartOfSpeech.NOUN);
-				if(posString.contains(" VERB"))
-					dictionary.put(word, PartOfSpeech.VERB);
-				if(posString.contains(" ADJECTIVE"))
-					dictionary.put(word, PartOfSpeech.ADJECTIVE);
-				if(posString.contains(" ADVERB"))
-					dictionary.put(word, PartOfSpeech.ADVERB);
-				if(posString.contains(" PREPOSITION"))
-					dictionary.put(word, PartOfSpeech.PREPOSITION);
-				if(posString.contains(" ARTICLE"))
-					dictionary.put(word, PartOfSpeech.ARTICLE);
-				//if(posString.contains(" BLANK"))
-					//dictionary.put(word, PartOfSpeech.BLANK);
-			}
-		}		
-		inFile.close();
+				if (inLine.matches(".*|.*")) {	 //enforce preset format (WORD | POS)				
+					//prune everything in line before delimiter (inclusive)
+					String posString = inLine.substring(inLine.indexOf('|') + 1);				
+					//prune everything in line after delimiter
+					String word = inLine.substring(0, inLine.indexOf('|'));
+					
+					if(posString.contains(" NOUN"))
+						dictionary.put(word, PartOfSpeech.NOUN);
+					if(posString.contains(" VERB"))
+						dictionary.put(word, PartOfSpeech.VERB);
+					if(posString.contains(" ADJECTIVE"))
+						dictionary.put(word, PartOfSpeech.ADJECTIVE);
+					if(posString.contains(" ADVERB"))
+						dictionary.put(word, PartOfSpeech.ADVERB);
+					if(posString.contains(" PREPOSITION"))
+						dictionary.put(word, PartOfSpeech.PREPOSITION);
+					if(posString.contains(" ARTICLE"))
+						dictionary.put(word, PartOfSpeech.ARTICLE);
+					//if(posString.contains(" BLANK"))
+						//dictionary.put(word, PartOfSpeech.BLANK);
+				}
+			}		
+			inFile.close();
+			return true;
+		} catch (IOException exception) {
+			System.out.println(" SYSTEM ERROR: IOException thrown during LOAD attempt (" + filename + ")");
+			exception.printStackTrace();
+			return false;
+		}
+	}
+	
+	
+	public boolean save(String filename) {
+		try {
+			java.io.PrintWriter outFile = new java.io.PrintWriter(filename);
+			for(Entry<String, PartOfSpeech> element : dictionary.entrySet())
+				outFile.println(element.getKey() + " | " + element.getValue());
+			outFile.close();
+			return true;
+		} catch (IOException exception) {
+			exception.printStackTrace();
+			return false;
+		}
 	}
 
 	
@@ -129,6 +153,7 @@ public class Dictionary {
 	
 	//Counts the syllables in a word (handles upper/lowercase)
 	public static int syllableCount(String word) {
+		if(word == null) return 0;
 		word = word.trim();
 		
 		System.out.println(" Analyzing syllables in \"" + word + "\": " + (vowelCount(word) - (diphthongCount(word) + silentVowels(word)))
