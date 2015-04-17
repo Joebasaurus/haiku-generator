@@ -13,21 +13,18 @@ import javax.swing.*;
  * part of speech and syllabic order.
  * 
  * @author Jobin
- * @version 0.2.8
+ * @version 0.3.0
  */
 public class Haiku extends JFrame implements ActionListener {
 	
      // =========================== INTERNAL COMPONENTS =========================== \\
      
-		//stores the location of an external dictionary file
-		private static final String DICTIONARY_FILE_PATH = "dictionary.txt";
+
 		//stores desired sentence structure
 		private static final SentenceGraph graph = new SentenceGraph();
 	
-		public enum PartOfSpeech { NOUN, VERB, ADVERB, ADJECTIVE, PREPOSITION, ARTICLE, BLANK };
-	
 		//stores information about loaded words
-		private HashMap<String, PartOfSpeech> dictionary;
+		private Dictionary dictionary;
 	
 
 		// GUI components
@@ -39,18 +36,19 @@ public class Haiku extends JFrame implements ActionListener {
      // =========================== CONSTRUCTOR AND MAIN =========================== \\
 	
 	public Haiku() {
-		setupDictionary();
+			
+		setupDictionary();	
 		setupWindow();
+		output.setText("    Clicking down below \n"
+				+ "   will generate a haiku \n"
+				+ "   why don't you try it?");
 		System.out.println("   SETUP COMPLETE");
 	}
 	
 	
 	public static void main(String[] args) {
 		//create an instance of 'Haiku' to invoke the setup functions
-		Haiku program = new Haiku();
-		program.output.setText("    Clicking down below \n"
-				+ "   will generate a haiku \n"
-				+ "   why don't you try it?");		
+		Haiku program = new Haiku();		
 	}
 	
 	
@@ -64,12 +62,16 @@ public class Haiku extends JFrame implements ActionListener {
 		System.out.print("   Generating a haiku...");		
 		graph.reset();
 		
-		String outString = "";		
-		outString += buildSentence(5, graph.getIndex()) + "\n";
-		outString += buildSentence(7, graph.getIndex()) + "\n";
-		outString += buildSentence(5, graph.getIndex()) + "\n";
+		String[] outString = new String[3];
+		do {
+			outString[0] = buildSentence(5, graph.getIndex()) + " (" + graph.getIndex() + ")\n";
+			outString[1] = buildSentence(7, graph.getIndex()) + " (" + graph.getIndex() + ")\n";
+			outString[2] = buildSentence(5, graph.getIndex()) + " (" + graph.getIndex() + ")\n";
+		} while (outString[0] == null || outString[1] == null || outString[2] == null);
+			
 		System.out.println("done");
-		return outString;
+		
+		return outString[0] + outString[1] + outString[2];
 	}
 	
 	
@@ -93,7 +95,7 @@ public class Haiku extends JFrame implements ActionListener {
 		//Pick a word (in this call) to add. If the dictionary runs out, or if 0 syllables are specified,
 		// this will return null.
 		PartOfSpeech nextPos = graph.getNode(startIndex);
-		String word = getNextWord(nextPos, syllablesLeft);
+		String word = nextWord(nextPos, syllablesLeft);
 		
 		// if (word == null), no words can be found that meet the criteria.
 		if(word != null) {
@@ -102,9 +104,7 @@ public class Haiku extends JFrame implements ActionListener {
 			int i = graph.nextEdge(startIndex);
 			
 			//this stops the sentence from ending on a preposition or article
-			if( 	(graph.reachedEnd() || syllablesLeft - syllables(word) <1) && 
-				(nextPos == PartOfSpeech.ARTICLE || nextPos == PartOfSpeech.PREPOSITION)
-			     	) {
+			if((graph.reachedEnd() || syllablesLeft - Dictionary.syllableCount(word) <1) && (nextPos == PartOfSpeech.ARTICLE || nextPos == PartOfSpeech.PREPOSITION)) {
 				System.out.println(" Error: cannot end on a preposition or article. (BACKTRACKING)");
 				return null;
 			}
@@ -113,7 +113,7 @@ public class Haiku extends JFrame implements ActionListener {
 				
 				//attempt travel to the next available edge
 				System.out.println("attempting travel to edge: " + i + "    (pos: " + graph.getNode(i) + ")");
-				String temp = buildSentence(syllablesLeft - syllables(word), i);
+				String temp = buildSentence(syllablesLeft - Dictionary.syllableCount(word), i);
 				
 				// if sentence can be completed by following this edge, commit the result.
 				// if (temp == null), method is backtracking (a dead end was reached in subsequent recursion).
@@ -127,57 +127,33 @@ public class Haiku extends JFrame implements ActionListener {
 		System.out.println("\n           DEAD END -- BACKTRACKING\n");
 		return null;
 	}
-	
-	
-	/**
-	 * Find the number of syllables in a given string.
-	 * This method doesn't yet work, so dictionary words with > 1 syllables should be avoided for now.
-	 */
-	private static int syllables(String word) {
-		if (word == null) 
-			return 0;
-		if (word.length() == 0) 
-			return 0;
-		
-		return 1;
-	}
+
 	
 	
 	/**
 	 * Pick a random word from the dictionary that fits the given criteria.
 	 * @param pos the desired part of speech
-	 * @param sylCount the MAXIMUM number of syllables that the word can have
+	 * @param sMax the MAXIMUM number of syllables that the word can have
 	 */
-	private String getNextWord(PartOfSpeech pos, int sylMax) {
+	private String nextWord(PartOfSpeech pos, int sMax) {
 		//TODO: make this more efficient than brute-force
 		//TODO: this method currently ONLY retrieves the first word matching criteria, NOT a randomized one		
-		System.out.println(" Searching for a " + pos + " with <" + sylMax + " syllables...");
+		System.out.println(" Searching for a " + pos + " with <" + sMax + " syllables...");
 		
 		if (pos == PartOfSpeech.BLANK)
-			return "";
+			return null;
+		if (sMax <= 0)
+			return null;
 		
 		// Create a set of all words that meet desired criteria
-		Set<String> words = new HashSet<String>();
-		for(String current : dictionary.keySet()) {
-			//System.out.print("\n  - " + current);
-			if( 
-			current.length() > 0 && 
-			pos == dictionary.get(current) && 
-			syllables(current) <= sylMax) {
-				//System.out.print(" <- possible choice");
-				words.add(current);
-				
-			}
-		}
+		Set<String> words = dictionary.wordSet(pos, 1, sMax);
 		
 		// Choose one word from this set at random
 		int target = new Random().nextInt(words.size());
 		int i = 0;
 		for(String s : words) {
-			if (i == target) {
-				System.out.println("\n Word chosen: " + s);
+			if (i == target)
 				return s;
-			}
 		 	i++;
 		}
 		return null;
@@ -191,50 +167,15 @@ public class Haiku extends JFrame implements ActionListener {
 	 * Initialize the supporting data structure for a Haiku generator.
 	 */
 	private void setupDictionary() {
-		System.out.print("   Loading dictionary...");
-		dictionary = new HashMap<String, PartOfSpeech>();
 		
 		//Deal with checked file IO exceptions
 		try {
-			Scanner inFile = new Scanner(new File(DICTIONARY_FILE_PATH));			
-			
-			while(inFile.hasNextLine()) { //Load entries
-				
-				String inLine = inFile.nextLine();  //stores each new line for parsing
-				
-				if (inLine.matches(".*|.*")) {	 //enforce preset format (WORD | POS)
-					
-					//prune everything in line before delimiter (inclusive)
-					String posString = inLine.substring(inLine.indexOf('|') + 1);
-					
-					//prune everything in line after delimiter
-					String word = inLine.substring(0, inLine.indexOf('|'));
-					
-					if(posString.contains(" NOUN"))
-						dictionary.put(word, PartOfSpeech.NOUN);
-					if(posString.contains(" VERB"))
-						dictionary.put(word, PartOfSpeech.VERB);
-					if(posString.contains(" ADJECTIVE"))
-						dictionary.put(word, PartOfSpeech.ADJECTIVE);
-					if(posString.contains(" ADVERB"))
-						dictionary.put(word, PartOfSpeech.ADVERB);
-					if(posString.contains(" PREPOSITION"))
-						dictionary.put(word, PartOfSpeech.PREPOSITION);
-					if(posString.contains(" ARTICLE"))
-						dictionary.put(word, PartOfSpeech.ARTICLE);
-					//if(posString.contains(" BLANK"))
-						//dictionary.put(word, PartOfSpeech.BLANK);
-				}
-			}
-			
-			inFile.close();
-			System.out.println("done");
+			dictionary = new Dictionary();
 		} catch (IOException exception) {
 			exception.printStackTrace();
 			JOptionPane.showMessageDialog(
 				this, 
-				"Error encountered while loading file \"" + DICTIONARY_FILE_PATH 
-					+ "\": file not found",
+				"Error encountered while loading dictionary: file not found",
 				"Error loading file", 
 				JOptionPane.ERROR_MESSAGE);
 			System.exit(1);
