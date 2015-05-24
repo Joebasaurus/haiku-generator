@@ -1,317 +1,279 @@
 package haiku;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Scanner;
+import java.awt.BorderLayout;
+import java.awt.event.*;
+import java.io.*;
+import java.util.Random;
 import java.util.Set;
 
-enum PartOfSpeech { NOUN, VERB, ADVERB, ADJECTIVE, PREPOSITION, ARTICLE, BLANK };
+import javax.swing.*;
+import javax.swing.text.*;
 
-public class Dictionary {
+/**
+ * This program is a haiku generator.  It loads words from a dictionary file, and arranges them according to
+ * part of speech and syllabic order.
+ * 
+ * @author Jobin
+ * @version 0.3.2
+ */
+public class Haiku extends JFrame implements ActionListener 
+{	
+	private static final long serialVersionUID = 1L;
 	
-	//-- stores the location of an external dictionary file
-	private static final String DEFAULT_FILENAME = "dictionary.txt";
+     // =========================== INTERNAL COMPONENTS =========================== \\
+
+		//stores desired sentence structure
+		private static final SentenceGraph graph = new SentenceGraph();
 	
-	//-- stores information about loaded words
-	private Map<String, PartOfSpeech> dictionary;
+		//stores information about loaded words
+		private Dictionary dictionary;
+	
+
+		// GUI components
+		private JButton generateButton;
+		private JTextPane output;
+
 	
 	
-	/**
-	 * Default constructor for class Dictionary. Loads the default dictionary into memory.
-	 * @throws IOException default dictionary.txt file not found
-	 */
-	public Dictionary() throws FileNotFoundException {
-		dictionary = new java.util.HashMap<String, PartOfSpeech>();
-		System.out.print("   Loading dictionary file...");
-		
-		//-- Dictionary is loaded here. This returns false if loading fails
-		if(!load(DEFAULT_FILENAME))
-			throw new FileNotFoundException("Error loading file \"" 
-					+ DEFAULT_FILENAME + "\": file not found");
-		
-		System.out.println("done");
-	}
+     // =========================== CONSTRUCTOR AND MAIN =========================== \\
 	
-	/**
-	 * This constructor only loads the specified dictionary text file into memory.
-	 * @param filename the dictionary text file to initially load
-	 * @throws IOException specified dictionary txt file not found
-	 */
-	public Dictionary(String filename) throws FileNotFoundException {
-		dictionary = new java.util.HashMap<String, PartOfSpeech>();
-		System.out.print("   Loading dictionary file...");
-		
-		//-- Dictionary is loaded here
-		if (!load(filename))
-			throw new FileNotFoundException("Error loading file \"" 
-					+ filename + "\": file not found");
-		
-		System.out.println("done");
+	public Haiku() 
+	{		
+		setupDictionary();	
+		setupWindow();
+		System.out.println("   SETUP COMPLETE");
 	}
 	
 	
+	public static void main(String[] args) {
+		new Haiku();
+	}
+	
+	
+     // ============================ PRIMARY METHODS ================================ \\
+     
 	/**
-	 * Read the given dictionary text file, and add its contents to this class' internal dictionary.
+	 * The backbone of the program.
+	 * @return a complete haiku.
+	 */
+	public String generate() 
+	{
+		System.out.print("   Generating a haiku...");		
+		graph.reset();
+		
+		String[] outString = new String[3];
+		
+		do {
+			outString[0] = buildSentence(5, graph.getIndex());
+			
+			if(graph.reachedEnd())
+				graph.reset();
+			
+			outString[1] = buildSentence(7, graph.getIndex());
+			
+			if(graph.reachedEnd())
+				graph.reset();
+			
+			outString[2] = buildSentence(5, graph.getIndex());
+		} 
+		while (containsNull(outString));
+			
+		//capitalize first letter
+		outString[0] = outString[0].substring(0, 1).toUpperCase() + outString[0].substring(1);
+		
+		System.out.println("done");
+		
+		//-- consolidate strings for output
+		String haiku = "";
+		for (int i = 0; i < outString.length; i++)
+			haiku += " " + outString[i] + "\n";
+		
+		return haiku;
+	}
+	 
+	
+	private boolean containsNull(String[] array)
+	{		
+		for (int i = 0; i < array.length; i++)
+			if (array[i] == null)
+				return true;
+		
+		return false;
+	}
+	
+	
+	/**
+	 * This method recursively traverses the supporting sentence structure graph.
 	 * 
-	 * @param filename the filename of a dictionary text file
-	 * @return if the dictionary file was loaded successfully
+	 * @param syllableCount the number of syllables remaining in the current line.
+	 * @param startIndex the index of the current graph node.
+	 * @return a string containing the current haiku line
 	 */
-	public boolean load(String filename) {
-		try {
-			Scanner inFile = new Scanner(new File(filename));		
-	
-			while(inFile.hasNextLine()) {	
-				String inLine = inFile.nextLine();  // stores each new line for parsing
+	private String buildSentence(int syllablesLeft, int startIndex) 
+	{
+		
+		//BASE CASE: the current line contains exactly (target) syllables
+		if (syllablesLeft <= 0)
+			return "";
+		
+		//BASE CASE: end of sentence is reached
+		if (startIndex >= graph.size() - 2 && syllablesLeft <= 0)
+			return "";
+		
+		
+		//Pick a word (in this call) to add. If the dictionary runs out, or if 0 syllables are specified,
+		// this will return null.
+		PartOfSpeech nextPos = graph.getNode(startIndex);
+		String word = nextWord(nextPos, syllablesLeft);
+		
+		// if (word == null), no words can be found that meet the criteria.
+		if(word != null) {
+			
+			// Iterate through the edges accessible from this position
+			int i = graph.nextEdge(startIndex);
+			
+			//this stops the sentence from ending on a preposition or article
+			if(graph.reachedEnd() || syllablesLeft - Dictionary.sylCount(word) <1)
+					if(nextPos == PartOfSpeech.ARTICLE || nextPos == PartOfSpeech.PREPOSITION ) {
+						System.out.println(" Error: cannot end on a preposition or article. (BACKTRACKING)");
+						return null;
+					}
+			
+			while (graph.hasNextEdge(i) && i < graph.size() - 1) {
 				
-				if (inLine.matches(".*|.*")) {	 // this line enforces entry format, (word | PARTOFSPEECH) without parenthesis
+				//attempt travel to the next available edge
+				System.out.println("attempting travel to edge: " + i + "    (pos: " + graph.getNode(i) + ")");
+				String temp = buildSentence(syllablesLeft - Dictionary.sylCount(word), i);
+				
+				// if sentence can be completed by following this edge, commit the result.
+				// if (temp == null), method is backtracking (a dead end was reached in subsequent recursion).
+				if (temp != null) {
 					
-					//prune everything in line before delimiter (inclusive)
-					String posString = inLine.substring(inLine.indexOf('|') + 1);
+					if (!(graph.reachedEnd() || syllablesLeft - Dictionary.sylCount(word) <1)) {
+						if(nextPos == PartOfSpeech.ADVERB) // this call is an adverb
+							if((i != 2 || i != 8) && (i != 6))	   // next call is not a prep or verb
+								word = word.trim() + ", ";
+						if(nextPos == PartOfSpeech.ADJECTIVE) // this call is an adjective
+							if(i == 4 || i == 10)			  // next call is an adjective
+								word = word.trim() + ", ";
+					}
 					
-					//prune everything in line after delimiter
-					String word = inLine.substring(0, inLine.indexOf('|'));
-					
-					if(posString.contains(" NOUN"))
-						dictionary.put(word, PartOfSpeech.NOUN);
-					if(posString.contains(" VERB"))
-						dictionary.put(word, PartOfSpeech.VERB);
-					if(posString.contains(" ADJECTIVE"))
-						dictionary.put(word, PartOfSpeech.ADJECTIVE);
-					if(posString.contains(" ADVERB"))
-						dictionary.put(word, PartOfSpeech.ADVERB);
-					if(posString.contains(" PREPOSITION"))
-						dictionary.put(word, PartOfSpeech.PREPOSITION);
-					if(posString.contains(" ARTICLE"))
-						dictionary.put(word, PartOfSpeech.ARTICLE);
+					return word + temp;
 				}
-			}		
-			inFile.close();
-			return true;
-		} catch (IOException exception) {
-			System.out.println(" SYSTEM ERROR: IOException thrown during LOAD attempt (" + filename + ")");
-			exception.printStackTrace();
-			return false;
-		}
-	}
-	
-	
-	/**
-	 * This method saves the dictionary loaded in memory to the default text file ("dictionary.txt").
-	 */
-	public boolean save() {
-		return save(DEFAULT_FILENAME);
-	}
-	
-	/**
-	 * This method saves the dictionary loaded in memory to a specified text file.
-	 */
-	public boolean save(String filename) {
-		try {
-			java.io.PrintWriter outFile = new java.io.PrintWriter(filename);
-			for(Entry<String, PartOfSpeech> element : dictionary.entrySet())
-				outFile.println(element.getKey() + " | " + element.getValue());
-			outFile.close();
-			return true;
-		} catch (IOException exception) {
-			exception.printStackTrace();
-			return false;
-		}
-	}
-	
-	
-	/**********************************************************\
-	 *	The following methods deal with reading and modifying 
-	 * 	word elements in the internal dictionary.
-	 *
-	\**********************************************************/
-	
-	/**
-	 * Returns a set containing all dictionary words with the given part of speech.
-	 */
-	public Set<String> wordSet(PartOfSpeech pos) {
-		Set<String> set = new java.util.HashSet<String>();
-		
-		for(Entry<String, PartOfSpeech> element : dictionary.entrySet())
-			if(element.getValue() == pos)
-				set.add(element.getKey());
-		return set;
-	}
-	
-	/**
-	 * Returns a set containing all dictionary words that have both the specified part of speech,
-	 *  and the specified number of syllables
-	 */
-	public Set<String> wordSet(PartOfSpeech pos, int syllables) {
-		Set<String> set = new java.util.HashSet<String>();
-		
-		for(Entry<String, PartOfSpeech> element : dictionary.entrySet())
-			if(element.getValue() == pos)
-				if(syllableCount(element.getKey()) == syllables)
-					set.add(element.getKey());
-		return set;
-	}
-	
-	/**
-	 * Returns a set containing all the dictionary words that have the specified part of speech, 
-	 * as well as a syllable count between sMin and sMax (inclusive).
-	 * @param pos the part of speech
-	 * @param sMin the smallest number of syllables usable
-	 * @param sMax the largest number of syllables usable
-	 */
-	public Set<String> wordSet(PartOfSpeech pos, int sMin, int sMax) {
-		Set<String> set = new java.util.HashSet<String>();
-		System.out.println("INITIAL WORDSET SIZE: " + set.size()
-				+ "\n Populating with " + pos + " with length between " + sMin + " and " + sMax);
-		
-		for(Entry<String, PartOfSpeech> element : dictionary.entrySet())
-			if(element.getValue() == pos) {
-				int syllables = syllableCount(element.getKey());
-				if(sMin <= syllables && syllables <= sMax)
-					set.add(element.getKey());
+				
+				i = graph.nextEdge(i);
 			}
-		System.out.println("RETURNING WORD SET WITH SIZE: " + set.size());
-		return set;
-	}
-	
-	/**
-	 *  Returns the part of speech of the given word.
-	 */
-	public PartOfSpeech getPOS(String word) {
-		return dictionary.get(word);
-	}
-	
-	
-	
-	
-	/**********************************************************\
-	 *	The following methods deal with syllable analysis.
-	 *
-	\**********************************************************/
-	
-	/**
-	 * Counts the number of syllables in a word.
-	 */
-	public static int syllableCount(String word) {
-		if(word == null) 
-			return 0;
-		
-		word = word.trim().toUpperCase();		
-		int vowels = vowelCount(word);
-		
-		if(vowels > 1)
-			if(word.matches(".*[A-Z && [^AEIOUY]]ED?"))
-				vowels--;
-		
-		return vowels - diphthongCount(word);
-	}
-	
-	/**
-	 * Counts the number of diphthongs (one-syllable vowel pairs) in a word.
-	 */
-	private static int diphthongCount(String word) {
-		word = word.toUpperCase();
-		
-		int count = 0;
-		if(word.matches(".*A[EIUY].*")) 	count++;
-		if(word.matches(".*E[AEIUY].*")) 	count++;
-		if(word.matches(".*I[AEOU].*")) 	count++;
-		if(word.matches(".*O[AIOUY].*")) 	count++;
-		if(word.matches(".*U[AEIUY].*")) 	count++;
-		if(word.matches(".*[A-Z&&[^AEIOU]]Y[AEIOU].*")) count++;
-		
-		return count;
-	}
-	
-	/**
-	 * Counts the number of vowels in a word.
-	 */
-	public static int vowelCount(String word) {
-		int count = 0;
-		for(int i = 0; i < word.length(); i++)
-			if(isVowel(word.charAt(i)))
-				count++;
-		return count;
-	}
-	
-	
-	/**
-	 * Determines whether a given character is a vowel.
-	 */
-	public static boolean isVowel(char c) {
-		switch(c) {
-		case 'A': case 'a':	
-		case 'E': case 'e':
-		case 'I': case 'i':
-		case 'O': case 'o':
-		case 'U': case 'u':
-		case 'Y': case 'y':
-					return true;
-					
-		default: 	return false;
 		}
+		// if this point is reached, the method either has no more available edges or no words.
+		System.out.println("\n           DEAD END -- BACKTRACKING\n");
+		return null;
 	}
 
 	
-	/*************************************************************************\
-	 *	The following methods provide information about the underlying data.
-	 *
-	\*************************************************************************/
 	
 	/**
-	 * Returns true if this dictionary contains no elements (words).
+	 * Pick a random word from the dictionary that fits the given criteria.
+	 * @param pos the desired part of speech
+	 * @param sMax the MAXIMUM number of syllables that the word can have
 	 */
-	public boolean isEmpty() {
-		return dictionary.isEmpty();
-	}
-	
-	
-	/**
-	 * Returns the number of entries in this dictionary.
-	 */
-	public int size() {
-		return dictionary.size();
-	}
-	
-	
-	/**
-	 * Returns true if this dictionary contains the specified word.
-	 */
-	public boolean contains(String word) {
-		return dictionary.containsValue(word);
-	}
-	
-	
-	/**
-	 * Returns an array containing all of the entries in this dictionary.
-	 */
-	public String[] toArray() {
+	private String nextWord(PartOfSpeech pos, int sMax) {
 		
-		String[] temp = new String[dictionary.size()];
+		System.out.println(" Searching for a " + pos + " with <" + sMax + " syllables...");
+		
+		if (pos == PartOfSpeech.BLANK)
+			return "";  // Advances sentence without using syllables or triggering backtracking
+		if (sMax <= 0)
+			return null;
+		
+		// Create a set of all words that meet desired criteria
+		Set<String> words = dictionary.wordSet(pos, 1, sMax);
+		if(words.size() == 0)
+			return null;
+		
+		// Choose one word from this set at random
+		int target = new Random().nextInt(words.size());
 		
 		int i = 0;
-		for(String element: dictionary.keySet()) {
-			temp[i] = element;
-			i++;
+		for(String s : words) {
+			if (i == target)
+				return s;
+		 	i++;
 		}
-		return temp;
+		return null;
 	}
 	
-
+	
+	
+	// =================== SETUP METHODS ========================= \\
+	
 	/**
-	 * Add the specified entry to this dictionary.
+	 * Initialize the supporting data structure for a Haiku generator.
 	 */
-	public boolean add(String s, PartOfSpeech pos) {
-		if (s == null || pos == null)
-			return false;
-		if (s.length() == 0)
-			return false;
-		if (pos == PartOfSpeech.BLANK)
-			return false;
-
-		dictionary.put(s, pos);
-		return true;
+	private void setupDictionary() 
+	{
+		final String dictFileName = "dictionary.txt";
+		
+		
+		try {
+			dictionary = new Dictionary(dictFileName);	
+		} 
+		catch (IOException exception) {
+			
+			exception.printStackTrace();
+			JOptionPane.showMessageDialog(this, exception.getMessage(), this.getTitle(), 
+					JOptionPane.ERROR_MESSAGE);
+			
+			System.exit(1);
+		}
+	}
+	
+	
+	/**
+	 * Initialize the GUI components of a Haiku generator window.
+	 */
+	private void setupWindow() 
+	{
+		System.out.print("  Creating GUI window...");
+		JPanel background = new JPanel(new BorderLayout());
+		
+		//setup generation button
+		generateButton = new JButton("Haiku");
+		generateButton.addActionListener(this);
+		background.add(generateButton, BorderLayout.SOUTH);
+		
+		//setup output field 
+		output = new JTextPane();
+		output.setEditable(false);
+		//output.setLineWrap(true);
+		output.setText("   A click below this, \n"
+					+ "   and a haiku will appear. \n"
+					+ "   Why don't you try it?");
+		background.add(output, BorderLayout.CENTER);
+		
+		this.getContentPane().add(background);
+		
+		//-- set text to center-alignment
+		StyledDocument doc = output.getStyledDocument();
+		SimpleAttributeSet center = new SimpleAttributeSet();
+		StyleConstants.setAlignment(center, StyleConstants.ALIGN_CENTER);
+		doc.setParagraphAttributes(0, doc.getLength(), center, false);
+		
+		//window setup -- general
+		this.setTitle("Haiku Generator");
+		this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+		this.setLocationRelativeTo(null);
+		this.setSize(240,130);
+		this.setVisible(true);
+		
+		System.out.println("done");
+	}
+	
+	
+	/**
+	 * Catch an ActionEvent -- used for identification of button clicks
+	 */
+	public void actionPerformed(ActionEvent e) {
+		if (e.getSource() == generateButton)
+			output.setText(generate());
 	}
 }
